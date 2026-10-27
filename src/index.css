@@ -1,0 +1,63 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --bg: 246 246 243;
+  --surface: 255 255 255;
+  --surface2: 238 238 234;
+  --line: 224 224 218;
+  --ink: 20 21 23;
+  --muted: 104 106 112;
+  --accent: 232 89 12; /* orange « Ultra » */
+  --good: 22 150 92;
+  --warn: 196 120 0;
+  --info: 37 99 235;
+  color-scheme: light;
+}
+.dark {
+  --bg: 11 12 14;
+  --surface: 22 23 26;
+  --surface2: 32 34 38;
+  --line: 44 46 52;
+  --ink: 240 240 236;
+  --muted: 150 152 160;
+  --accent: 232 95 20;
+  --good: 52 199 120;
+  --warn: 245 166 35;
+  --info: 82 136 240;
+  color-scheme: dark;
+}
+
+html, body, #root { min-height: 100%; }
+body {
+  @apply bg-bg text-ink font-sans antialiased;
+  -webkit-tap-highlight-color: transparent;
+  font-feature-settings: 'tnum' 1, 'cv11' 1;
+}
+.tabular { font-variant-numeric: tabular-nums; }
+
+@layer components {
+  .card { @apply bg-surface rounded-2xl border border-line/70 p-4; }
+  .btn { @apply inline-flex items-center justify-center gap-2 rounded-xl px-4 h-11 text-[15px] font-semibold transition active:scale-[0.98] disabled:opacity-40 disabled:pointer-events-none; }
+  .btn-primary { @apply btn bg-accent text-white; }
+  .btn-secondary { @apply btn bg-surface2 text-ink; }
+  .btn-ghost { @apply btn bg-transparent text-ink hover:bg-surface2; }
+  .btn-danger { @apply btn bg-red-600/10 text-red-600 dark:text-red-400; }
+  .btn-sm { @apply h-9 px-3 text-sm rounded-lg; }
+  .input { @apply w-full h-11 rounded-xl bg-surface2 border border-transparent px-3 text-[16px] outline-none focus:border-accent/70 placeholder:text-muted/70; }
+  .label { @apply block text-[13px] font-medium text-muted mb-1; }
+  .chip { @apply inline-flex items-center gap-1 rounded-full px-2.5 h-7 text-[13px] font-medium bg-surface2 text-ink; }
+  .chip-active { @apply bg-ink text-bg; }
+  .section-title { @apply text-[13px] font-semibold uppercase tracking-wide text-muted mb-2 px-1; }
+}
+
+/* Safe areas iPhone */
+.pb-safe { padding-bottom: calc(env(safe-area-inset-bottom) + 0.5rem); }
+.pt-safe { padding-top: env(safe-area-inset-top); }
+
+@media (prefers-reduced-motion: no-preference) {
+  .fade-in { animation: fadein 0.25s ease-out; }
+  @keyframes fadein { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
+}
+input[type='number']::-webkit-inner-spin-button { -webkit-appearance: none; }
