@@ -2,7 +2,7 @@ import { lazy, Suspense, useEffect } from 'react';
 import { HashRouter, Route, Routes } from 'react-router-dom';
 import { Layout } from './components/Layout';
 import { Loading } from './components/ui';
-import { useProfile } from './db/hooks';
+import { useProfile, useStore } from './db/hooks';
 import { requestPersistence } from './db/db';
 import Dashboard from './pages/Dashboard';
 import Journal from './pages/Journal';
@@ -22,6 +22,7 @@ const Review = lazy(() => import('./pages/Review'));
 const Profile = lazy(() => import('./pages/Profile'));
 const Data = lazy(() => import('./pages/Data'));
 const More = lazy(() => import('./pages/More'));
+const Welcome = lazy(() => import('./pages/Welcome'));
 
 function ThemeSync() {
   const [profile] = useProfile();
@@ -39,6 +40,10 @@ function ThemeSync() {
 
 export default function App() {
   useEffect(() => { requestPersistence(); }, []);
+  const profiles = useStore('profile');
+  if (!profiles) return <Loading />;
+  // Premier lancement sur cet appareil : création du profil (ou restauration d'une sauvegarde).
+  if (profiles.length === 0) return <Suspense fallback={<Loading />}><Welcome /></Suspense>;
   return (
     <HashRouter>
       <ThemeSync />

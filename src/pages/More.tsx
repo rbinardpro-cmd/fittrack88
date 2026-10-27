@@ -3,6 +3,7 @@ import { useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useProfile } from '../db/hooks';
 import { PageHeader, Segmented } from '../components/ui';
+import { LockSettings } from '../components/AppLock';
 
 const LINKS = [
   { to: '/poids', label: 'Poids', icon: Scale, hint: 'Pesées, tendance, estimation' },
@@ -48,7 +49,8 @@ export default function MorePage() {
           <Segmented ariaLabel="Thème" value={profile.theme} onChange={(t) => update({ theme: t })} options={[{ value: 'system', label: 'Auto' }, { value: 'light', label: 'Clair' }, { value: 'dark', label: 'Sombre' }]} />
         </div>
       )}
-      <p className="text-[12px] text-muted text-center">FITTRACK 88 · v0.1 · données stockées uniquement sur cet appareil</p>
+      <LockSettings />
+      <p className="text-[12px] text-muted text-center">FITTRACK 88 · v0.2 · données stockées uniquement sur cet appareil</p>
     </div>
   );
 }

@@ -42,6 +42,9 @@ L'application est un site statique (`dist/`), utilisable dans un sous-dossier gr
 
 ## Utilisation quotidienne
 
+- **Premier lancement** : chaque téléphone affiche un écran d'accueil (prénom, sexe, âge, taille, poids, objectif, activité) ou propose de restaurer une sauvegarde. Les données de chaque appareil sont séparées : deux personnes = deux téléphones = deux suivis indépendants, sans compte ni serveur.
+- **Scan de code-barres** (Journal › ajouter › Scanner) : caméra arrière en direct, photo de l'étiquette ou saisie des chiffres (clé de contrôle vérifiée). Lecture sur l'appareil avec ZXing en WebAssembly (aucun service externe) ; le code est cherché d'abord dans les aliments déjà enregistrés, puis dans Open Food Facts ; produit absent ou incomplet → création depuis l'étiquette, reconnue au scan suivant.
+- **Code de verrouillage** (Plus) : 4 à 6 chiffres, demandé à l'ouverture et après 5 min en arrière-plan, attente croissante après 5 erreurs. Seule une empreinte PBKDF2 salée est stockée. C'est un verrou d'écran, pas un chiffrement ; il n'est pas inclus dans les sauvegardes ; en cas d'oubli, il faut effacer les données de l'appli sur ce téléphone.
 - **Accueil** : progression (avancement vers 88 kg, kg perdus/restants, variations 7/30/90 jours, moyenne hebdo, estimation datée avec fourchette après 14 jours), journée (calories, macros, eau, énergie, activité, entraînement, habitudes).
 - **Journal** : aliments par repas, cru/cuit, recettes en portions (½, 1, 1½…), ajout rapide, dupliquer un repas, reprendre un repas précédent, eau (+250, +500, personnalisé).
 - **Repas** : programme 14 jours ; « Mangé » ajoute la recette au journal (et seulement à ce moment), « Remplacé » ouvre le journal, « Ignoré » retire le repas des courses.
@@ -111,7 +114,7 @@ Vérifié en plus dans Chromium au format iPhone 13 (Playwright) : pesée, journ
 
 ## Confidentialité
 
-Aucun compte, aucun serveur, aucun traceur. Les données (poids, repas, activité, sommeil) sont dans IndexedDB sur l'appareil. Seule connexion externe : la recherche Open Food Facts, à ta demande (le texte recherché est envoyé). Export, restauration et suppression totale disponibles dans Données.
+Aucun compte, aucun serveur, aucun traceur. Les données (poids, repas, activité, sommeil) sont dans IndexedDB sur l'appareil. Seule connexion externe : Open Food Facts, à ta demande (le texte recherché ou les chiffres du code-barres sont envoyés ; l'image de la caméra ne quitte jamais le téléphone). Export, restauration et suppression totale disponibles dans Données.
 
 ## Licence des données
 

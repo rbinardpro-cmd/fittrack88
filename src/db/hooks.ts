@@ -7,7 +7,6 @@ import { DEFAULT_RUN_PLAN } from '../lib/running';
 import type { Food, Profile, RunSession } from '../lib/types';
 import { latestWeight } from '../lib/weight';
 import { getAll, getOne, put, subscribe, type FitDB, type StoreName } from './db';
-import { defaultProfile } from './defaults';
 
 /** Lit tout un magasin et se met à jour à chaque modification. `undefined` pendant le chargement. */
 export function useStore<S extends StoreName>(store: S): FitDB[S]['value'][] | undefined {
@@ -25,20 +24,14 @@ export function useStore<S extends StoreName>(store: S): FitDB[S]['value'][] | u
   return rows;
 }
 
-/** Profil (créé avec les valeurs de départ au premier lancement). */
+/** Profil (créé par l'écran d'accueil au premier lancement, voir Welcome). */
 export function useProfile(): [Profile | undefined, (p: Partial<Profile>) => Promise<void>] {
   const rows = useStore('profile');
   const profile = rows?.[0];
-  useEffect(() => {
-    if (rows && rows.length === 0) {
-      getOne('profile', 'profile').then((p) => {
-        if (!p) put('profile', defaultProfile(today()));
-      });
-    }
-  }, [rows]);
   const update = useCallback(
     async (patch: Partial<Profile>) => {
-      const cur = (await getOne('profile', 'profile')) ?? defaultProfile(today());
+      const cur = await getOne('profile', 'profile');
+      if (!cur) throw new Error('Profil absent : termine d’abord l’écran d’accueil.');
       await put('profile', { ...cur, ...patch, id: 'profile', updatedAt: Date.now() });
     },
     [],

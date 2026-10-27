@@ -1,32 +1,41 @@
-import { Star, Search, Globe, Plus, ChevronLeft, Zap } from 'lucide-react';
-import { useMemo, useState } from 'react';
+import { Star, Search, Globe, Plus, ChevronLeft, Zap, ScanBarcode } from 'lucide-react';
+import { lazy, Suspense, useMemo, useState } from 'react';
 import type { Recipe } from '../data/recipes';
 import { MEAL_LABELS } from '../data/mealPlan';
 import { logFood, logRecipe, toggleFavorite } from '../db/actions';
-import { put } from '../db/db';
+import { getAll, put } from '../db/db';
+import { FOODS } from '../data/foods';
 import { useFoods, useRecipes, useStore } from '../db/hooks';
 import { fmt0, fmt1, uid } from '../lib/format';
 import { convertWeight, hasCookStates, nutrientsFor, searchFoods } from '../lib/nutrition';
-import { fetchOffBarcode, searchOff } from '../lib/off';
+import { barcodeVariants } from '../lib/barcode-utils';
+import { fetchOffBarcode, lookupOffBarcode, searchOff } from '../lib/off';
 import { nutritionForServings, recipeNutrition } from '../lib/recipes';
 import type { CookState, DayKey, Food, Meal } from '../lib/types';
 import { FoodForm } from './FoodForm';
-import { Field, Notice, parseNum, Segmented, SourceBadge } from './ui';
+import { Field, Loading, Notice, parseNum, Segmented, SourceBadge } from './ui';
 import { toast } from './toast';
 
 type Tab = 'search' | 'recipes' | 'online' | 'create' | 'quick';
+
+const BarcodeScanner = lazy(() => import('./BarcodeScanner'));
 
 export function AddFood({ date, meal, onDone }: { date: DayKey; meal: Meal; onDone: () => void }) {
   const [tab, setTab] = useState<Tab>('search');
   const [picked, setPicked] = useState<Food | null>(null);
   const [pickedRecipe, setPickedRecipe] = useState<Recipe | null>(null);
+  const [scanning, setScanning] = useState(false);
 
+  if (scanning && !picked) return <ScanFlow onPick={(f) => { setScanning(false); setPicked(f); }} onBack={() => setScanning(false)} />;
   if (picked) return <QuantityPicker food={picked} date={date} meal={meal} onBack={() => setPicked(null)} onDone={onDone} />;
   if (pickedRecipe) return <RecipeServingsPicker recipe={pickedRecipe} date={date} meal={meal} onBack={() => setPickedRecipe(null)} onDone={onDone} />;
 
   return (
     <div className="space-y-3">
-      <div className="text-[13px] text-muted">Ajout au {MEAL_LABELS[meal].toLowerCase()}</div>
+      <div className="flex items-center justify-between gap-2">
+        <div className="text-[13px] text-muted">Ajout au {MEAL_LABELS[meal].toLowerCase()}</div>
+        <button className="btn-secondary btn-sm" onClick={() => setScanning(true)}><ScanBarcode size={16} />Scanner</button>
+      </div>
       <Segmented ariaLabel="Mode d’ajout" value={tab} onChange={setTab} options={[
         { value: 'search', label: 'Aliments' }, { value: 'recipes', label: 'Recettes' }, { value: 'online', label: 'En ligne' }, { value: 'create', label: 'Créer' }, { value: 'quick', label: 'Rapide' },
       ]} />
@@ -145,6 +154,59 @@ function OnlineSearch({ onPick }: { onPick: (f: Food) => void }) {
         <ul className="divide-y divide-line/50">{state.foods.map((f) => <FoodRow key={f.id} food={f} onPick={pick} />)}</ul>
       ) : <p className="text-sm text-muted">Aucun produit avec des valeurs nutritionnelles complètes.</p>)}
       {!!state.skipped && <p className="text-[12px] text-muted">{state.skipped} produit(s) écarté(s) car leurs valeurs nutritionnelles sont incomplètes.</p>}
+    </div>
+  );
+}
+
+type ScanState =
+  | { step: 'scan' }
+  | { step: 'loading'; code: string }
+  | { step: 'missing'; code: string; message: string; name?: string }
+  | { step: 'create'; code: string; name?: string };
+
+/** Scan → aliment déjà connu sur l'appareil, sinon Open Food Facts, sinon création depuis l'étiquette. */
+function ScanFlow({ onPick, onBack }: { onPick: (f: Food) => void; onBack: () => void }) {
+  const [s, setS] = useState<ScanState>({ step: 'scan' });
+
+  async function handle(code: string) {
+    const variants = barcodeVariants(code);
+    const local = [...FOODS, ...(await getAll('foods'))].find((f) => f.barcode && variants.includes(f.barcode));
+    if (local) { onPick(local); return; }
+    setS({ step: 'loading', code });
+    try {
+      const r = await lookupOffBarcode(code);
+      if (r.status === 'found') {
+        await put('foods', r.food); // conservé pour les prochains scans, même hors ligne
+        onPick(r.food);
+      } else if (r.status === 'incomplete') {
+        setS({ step: 'missing', code, name: r.name, message: `« ${r.name || 'Produit'} » est dans Open Food Facts mais ses valeurs nutritionnelles sont incomplètes. Saisis-les depuis l’étiquette.` });
+      } else {
+        setS({ step: 'missing', code, message: 'Ce produit n’est pas (encore) dans Open Food Facts. Tu peux le créer depuis l’étiquette : il sera reconnu au prochain scan.' });
+      }
+    } catch (err) {
+      setS({ step: 'missing', code, message: err instanceof Error ? err.message : 'Open Food Facts est injoignable.' });
+    }
+  }
+
+  return (
+    <div className="space-y-3">
+      <button className="flex items-center gap-1 text-sm text-accent font-semibold" onClick={s.step === 'scan' ? onBack : () => setS({ step: 'scan' })}><ChevronLeft size={16} />Retour</button>
+      {s.step === 'scan' && <Suspense fallback={<Loading />}><BarcodeScanner onResult={handle} /></Suspense>}
+      {s.step === 'loading' && <p className="text-sm text-muted" role="status">Code {s.code} : recherche dans Open Food Facts…</p>}
+      {s.step === 'missing' && (
+        <>
+          <div className="text-[13px] text-muted tabular">Code-barres {s.code}</div>
+          <Notice tone="warn">{s.message}</Notice>
+          <button className="btn-primary w-full" onClick={() => setS({ step: 'create', code: s.code, name: s.name })}><Plus size={18} />Créer l’aliment depuis l’étiquette</button>
+          <button className="btn-secondary w-full" onClick={() => setS({ step: 'scan' })}><ScanBarcode size={18} />Scanner un autre produit</button>
+        </>
+      )}
+      {s.step === 'create' && (
+        <>
+          <div className="text-[13px] text-muted tabular">Code-barres {s.code} (sera associé à l’aliment)</div>
+          <FoodForm barcode={s.code} defaultName={s.name} onSaved={onPick} />
+        </>
+      )}
     </div>
   );
 }

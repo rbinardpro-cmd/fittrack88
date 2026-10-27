@@ -16,7 +16,7 @@ describe('Mifflin-St Jeor', () => {
 });
 
 describe('objectifs', () => {
-  const p = defaultProfile('2026-10-27');
+  const p = defaultProfile('2026-10-27', { firstName: 'Romain', sex: 'male', age: 31, heightCm: 187, startWeightKg: 120, goalWeightKg: 88, activityLevel: 'light' });
   it('donne un déficit modéré et des macros cohérentes', () => {
     const t = computeTargets(p, 120);
     expect(t.bmr).toBe(2219);

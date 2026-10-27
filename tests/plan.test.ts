@@ -30,7 +30,7 @@ describe('programme repas 14 jours', () => {
     const { computeTargets } = await import('../src/lib/energy');
     const { defaultProfile } = await import('../src/db/defaults');
     const { recipeNutrition } = await import('../src/lib/recipes');
-    const target = computeTargets(defaultProfile('2026-10-27'), 120).kcal;
+    const target = computeTargets(defaultProfile('2026-10-27', { firstName: 'Romain', sex: 'male', age: 31, heightCm: 187, startWeightKg: 120, goalWeightKg: 88, activityLevel: 'light' }), 120).kcal;
     for (const [i, day] of MEAL_PLAN.entries()) {
       const kcal = day.reduce((s, p) => s + recipeNutrition(RECIPE_BY_ID[p.recipeId], lookup).perServing.kcal * p.servings, 0);
       expect(kcal, `jour ${i + 1}`).toBeGreaterThanOrEqual(target * 0.8);

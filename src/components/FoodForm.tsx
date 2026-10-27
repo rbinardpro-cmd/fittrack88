@@ -7,9 +7,9 @@ import { Field, Notice, parseNum } from './ui';
 import { toast } from './toast';
 
 /** Création / modification d'un aliment personnel, à partir de l'étiquette (valeurs pour 100 g). */
-export function FoodForm({ initial, onSaved }: { initial?: Food; onSaved: (f: Food) => void }) {
+export function FoodForm({ initial, onSaved, barcode, defaultName }: { initial?: Food; onSaved: (f: Food) => void; barcode?: string; defaultName?: string }) {
   const s = (n?: number | null) => (n == null ? '' : String(n).replace('.', ','));
-  const [name, setName] = useState(initial?.name ?? '');
+  const [name, setName] = useState(initial?.name ?? defaultName ?? '');
   const [kcal, setKcal] = useState(s(initial?.per100.kcal));
   const [protein, setProtein] = useState(s(initial?.per100.protein));
   const [carbs, setCarbs] = useState(s(initial?.per100.carbs));
@@ -39,7 +39,7 @@ export function FoodForm({ initial, onSaved }: { initial?: Food; onSaved: (f: Fo
       cookedYield: hasYield && (parseNum(yieldV) ?? 0) > 0 ? parseNum(yieldV)! : undefined,
       source: initial?.source ?? 'manual',
       sourceNote: initial?.sourceNote ?? 'Aliment personnel (saisi depuis l’étiquette)',
-      barcode: initial?.barcode,
+      barcode: initial?.barcode ?? barcode,
       allergens: initial?.allergens,
       custom: true,
       favorite: initial?.favorite,

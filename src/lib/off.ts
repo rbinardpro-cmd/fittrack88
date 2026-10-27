@@ -1,3 +1,4 @@
+import { barcodeVariants } from './barcode-utils';
 import { kcalFromMacros } from './nutrition';
 import type { Food } from './types';
 
@@ -52,8 +53,9 @@ export function offToFood(p: OffProduct): Food | null {
   };
 }
 
-async function getJson(url: string, signal?: AbortSignal) {
+async function getJson(url: string, signal?: AbortSignal, notFoundOk = false) {
   const res = await fetch(url, { signal, headers: { Accept: 'application/json' } });
+  if (res.status === 404 && notFoundOk) return { status: 0 }; // produit absent de la base
   if (res.status === 429) throw new Error('Trop de recherches en peu de temps (limite d’Open Food Facts). Réessaie dans une minute.');
   if (!res.ok) throw new Error(`Open Food Facts indisponible (erreur ${res.status}).`);
   return res.json();
@@ -68,9 +70,23 @@ export async function searchOff(query: string, signal?: AbortSignal): Promise<{ 
   return { foods, skipped: all.length - foods.length };
 }
 
-export async function fetchOffBarcode(code: string, signal?: AbortSignal): Promise<Food | null> {
+export type BarcodeLookup = { status: 'found'; food: Food } | { status: 'incomplete'; name: string } | { status: 'unknown' };
+
+/** Cherche un produit par code-barres ; distingue « inconnu » et « connu mais valeurs incomplètes ». */
+export async function lookupOffBarcode(code: string, signal?: AbortSignal): Promise<BarcodeLookup> {
   if (!/^\d{8,14}$/.test(code)) throw new Error('Code-barres invalide (8 à 14 chiffres).');
-  const data = (await getJson(`${BASE}/api/v2/product/${code}.json?fields=${FIELDS}`, signal)) as { status: number; product?: OffProduct };
-  if (data.status !== 1 || !data.product) return null;
-  return offToFood({ ...data.product, code });
+  if (!navigator.onLine) throw new Error('Pas de connexion Internet : impossible d’interroger Open Food Facts.');
+  for (const c of barcodeVariants(code)) {
+    const data = (await getJson(`${BASE}/api/v2/product/${c}.json?fields=${FIELDS}`, signal, true)) as { status: number; product?: OffProduct };
+    if (data.status !== 1 || !data.product) continue;
+    const food = offToFood({ ...data.product, code: c });
+    if (food) return { status: 'found', food };
+    return { status: 'incomplete', name: (data.product.product_name_fr || data.product.product_name || '').trim() };
+  }
+  return { status: 'unknown' };
+}
+
+export async function fetchOffBarcode(code: string, signal?: AbortSignal): Promise<Food | null> {
+  const r = await lookupOffBarcode(code, signal);
+  return r.status === 'found' ? r.food : null;
 }
