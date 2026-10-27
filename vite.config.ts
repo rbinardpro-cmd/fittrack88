@@ -9,7 +9,8 @@ export default defineConfig({
   base: './',
   plugins: [
     react(),
-    VitePWA({
+    // ARTIFACT=1 : build d'aperçu sans service worker (hébergement sandboxé)
+    !process.env.ARTIFACT && VitePWA({
       registerType: 'autoUpdate',
       includeAssets: ['icon.svg', 'apple-touch-icon.png'],
       manifest: {

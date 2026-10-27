@@ -30,6 +30,11 @@ export function Layout() {
           ))}
         </nav>
         <main id="main" className="flex-1 min-w-0 px-4 pb-28 md:pb-10 pt-safe max-w-3xl mx-auto w-full">
+          {import.meta.env.VITE_DEMO_BANNER && (
+            <div className="mt-3 rounded-xl border border-warn/30 bg-warn/10 px-3 py-2 text-[12px] leading-relaxed">
+              Aperçu à essayer : ici, la sauvegarde, les exports, le presse-papiers, l’installation sur l’écran d’accueil et Open Food Facts sont bloqués par l’hébergement. Les données saisies restent dans ce navigateur mais ne pourront pas être transférées : pour l’usage au quotidien, utilise la version installée.
+            </div>
+          )}
           <Outlet />
         </main>
       </div>
